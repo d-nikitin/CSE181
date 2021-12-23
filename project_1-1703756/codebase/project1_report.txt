@@ -1,0 +1,45 @@
+1. Basic information
+Team Number: 4
+CruzID of Submitter: raarora
+Student Name of Submitter: Rahul Arora 
+Names of the other Team Members: Dmitriy Nikitin, Mitchell Elliott
+
+
+2. Internal Record Format
+- Record Format:
+- 1. Int storing the number of fields in the record
+- 2. Null flag bits. The amount of bytes needed is determined by the ceiling of (# of fields)/8
+- 3. Ints storing the ending bit of each not null field. Null fields are skipped.
+- 4. Each non null field in the order it was given. Null fields are skipped.
+
+- Fields cannot be accessed within the record in O(1) time.
+
+- VARCHAR fields are stored based on the length of the field. The ints storing the ending bytes
+of non null fields are used to determine the length of the field. Based on that, enough bytes 
+will be dynamically allocated for the VARCHAR to fit in the record.
+
+
+3. Page Format
+- Pages are dynamically created as existing pages run out of space to hold new records.
+
+- Records are inserted from the end of the first record in the page. 
+- The bit at which the last inserted record ends and the free space of the page begins 
+is denoted by the free space offset integer, stored in the last 4 bytes of the page
+- An integer tracking the number of records that are stored in the page is stored in the 
+4 bytes before the free space offset integer
+- A tuple of 2 integers storing the length of each record, as well as the starting bit 
+of each record, is prepended before the two integers at the end of the page, as well as 
+any existing tuples for records inserted earlier
+
+
+4. Implementation Detail
+- Be sure to supply additional pertinent implementation detail here.  You may lose credit if this section of the report is empty.
+
+- We used tuples of two integers to store the slot directory entries.
+- We created a helper function to create a new page and initialize it with an empty slot directory.
+
+
+5. Other (optional)
+- Freely use this section to tell us about other things about your Project1 solution that may help us understand and grade your solution.
+
++----

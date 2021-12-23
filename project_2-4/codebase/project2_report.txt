@@ -1,0 +1,93 @@
+1. Basic information
+
+Team Number: 4
+Student ID# of Submitter: 1703756
+Name of Submitter: Rahul Arora
+ID#s and Names for others on the Team: Dmitriy Nikitin (1649206), Mitchell Elliott (1669224)
+
+
+2. Catalogs/Metadata
+
+- Show your catalog design (Tables and Columns tables), and the information about each column in those catalogs.
+- How do you distinguish catalogs (which can't be changed by Insert, Update and Delete statements) from other tables?
+
+
+3. Internal Record Format
+
+- Show your record format design, and describe how your design satisfies O(1) field access. If not, just mention that your team hasn't implemented this feature.
+- Describe how you store a VarChar field.
+- Describe how you deal with update of a VarChar field.
+
+- Record Format:
+- 1. Int storing the number of fields in the record
+- 2. Null flag bits. The amount of bytes needed is determined by the ceiling of (# of fields)/8
+- 3. Ints storing the ending bit of each not null field. Null fields are skipped.
+- 4. Each non null field in the order it was given. Null fields are skipped.
+
+- VARCHAR fields are stored based on the length of the field. The ints storing the ending bytes
+of non null fields are used to determine the length of the field. Based on that, enough bytes 
+will be dynamically allocated for the VARCHAR to fit in the record.
+
+- Our design satisfies O(1) field access by seeking to the correct page number and then to the correct slot number without having to iterate over all of the records that were stored before the current record.
+
+- We store a VarChar field by including the length of the VarChar before the VarChar within the record entry.
+
+- We update a VarChar field based on three different cases:
+
+Case 1: New data and old data are the same size
+    - Replace old data with new data using setRecordAtOffset().
+
+Case 2: New data and old data are different sizes and the new data fits on the same page
+    - Adjust the offset of each following record by the difference between the new and old data size. Adjust the length of the record being 
+      updated. Replace the old data with the new data using setRecordAtOffset.
+
+Case 3: If new data and old data are different sizes but the new data does not fit on the same page
+    - Delete the old record data from the page it is in. Adjust the offset for all following records. Decrease the free space pointer by the length of the 
+      old data. Find a new page to insert into by calculating the free space in every existing page. If the data will not fit in any existing pages, make a 
+      new page. Insert record into the selected page. Update the old record entry in the original page's slot directory with (pageNum, -slotNum). The slot 
+      will remain in the original page but the negative length in the slot directory will indicate that the record has been forwarded to another page.
+
+
+4. Page Format
+
+- Show your page format design.
+- Describe how you deal with update of a record.
+- Describe how you deal with delete of a record.
+
+1. The page format follows the project 1 solution that was given to us.
+
+2. Records are updated as VarChars are updated. The logic/cases are the same.
+
+3. When a record is deleted, its offset is set to be negative in the slot directory in the page it was stored in. The rid remains the same. The offsets of all following records in the page where the delete happened are shifted back by the length of the record to be deleted. The records themselves are shifted back by the same amount, overwriting the record that was to be deleted.
+
+
+5. File Format
+
+- Show your file format design.
+
+- We created a catalog, or set of tables, to hold information about our database. We store a list of all of our tables and columns in two system tables, one for the list of tables and another for the list of columns. All other tables store the tuples that were inserted in their respective files.
+
+- Data in the user data files is stored in tuple format, which is internally stored in record format. Records are stored in pages within a file.
+
+- Every time a table is created, insert it into the record-based tables table with a unique table id, table name, and the name of the file in which the table's records will be stored. Then create a new file with the name of the table and insert all attributes for the table in the columns table, with the corresponding table id, attribute name, attribute size, and column position.
+
+
+6. Implementation Detail
+
+Other implementation details goes here.  For example:  
+- Describe your use of Forwarding Addresses, including what happens when a Forwarding Address needs to be forwarded yet again to another page.
+- Describe how a scan is done, touching each record exactly once even when there are Forwarding Addresses.
+- Describe how you determine that a previously slot on a page is empty (after record is deleted), so that the slot can be re-used for another record.  (Yes, a record's rid is supposed to be permanent, but only while the record exists.)
+
+1. We handle forwarding by making a records length negative when we are looking for the record length and offset on the page. If the length of the record is negative we get the rid of the forwarded page and then recur on that rid. This also handles multiple forwards because of recursion.
+
+2. The scan ignores the records that have negative lengths since it goes through the records on all the pages. If there are forwarded records they will eventually get looked at in the scan.
+
+3. When a record is deleted we shift all of the records behind the deleted record by the size of the deleted record. The slots and offsets of the following records are also adjusted accordingly. The offset to the start of free space is also updated.
+
+
+7. Other (optional)
+
+- Freely use this section to tell us about things that are related to the project 2, but not related to the other sections, such as design and implementation information for the Advanced (Extra Credit) Features, if you've implemented them (optional).
+
+Our code passes tests 0-5 and 12.
